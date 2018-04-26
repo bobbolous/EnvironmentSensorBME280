@@ -1,6 +1,9 @@
 /*  Author: Jan Schöfer
     Changelog:
 
+    Version 0.21a: 26.04.2018
+      -minor changes
+
     Version 0.20a: 12.02.2018
       - added Display of Up Time
       - changed display behaviour 
@@ -22,40 +25,27 @@
 */
 
 
-#define VERSION "0.20a"
+#define VERSION "0.21a"
 
 #define SERIAL_INTERVAL 1000 //interval for sending serial [ms]
 #define LCD_INTERVAL 1000 //interval for refreshing LCD [ms] 
 #define BME_INTERVAL 2000 //interval for reading BME280 (may collide with sensor standby)
 #define BLINK_INTERVAL 1000 //interval for blinking (LED, LCD heart)
 
-//I2C library
-#include <Wire.h>
-
-//for BME280
+//for Sensor BME280
+#include <Wire.h> //I2C library
 #include <Adafruit_Sensor.h> //not really needed here (Adafruit_BME280.h needs this)
 #include <Adafruit_BME280.h>
 Adafruit_BME280 bme;
-
-//for LCD
-#include <Wire.h>
-#include <LiquidCrystal.h>
-
-// pins for LCD panel
-LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
-
-long lastDisplay = 0;
-long lastSerial = 0;
-long lastBme = 0;
-long lastBlink = 0;
-
 float humidity = 0.0;
 float temperature = 0.0;
 float pressure = 0.0;
 
-bool blinkState = false;
+//for LCD Keypad Shield
+#include <Wire.h> //I2C library
+#include <LiquidCrystal.h>
+LiquidCrystal lcd(8, 9, 4, 5, 6, 7); // pins for LCD panel
 
-// stuff for LCD Keypad Shield
 int btnID     = 0;
 int btnAnalogValue  = 0;
 #define btnRIGHT  0
@@ -64,6 +54,14 @@ int btnAnalogValue  = 0;
 #define btnLEFT   3
 #define btnSELECT 4
 #define btnNONE   5
+
+//for time handling
+long t_lastDisplay = 0;
+long t_lastSerial = 0;
+long t_lastSensor = 0;
+long t_lastBlink = 0;
+
+bool blinkState = false;
 
 //additional LCD characters
 uint8_t heart[8] = {0x0, 0xa, 0x1f, 0x1f, 0xe, 0x4, 0x0}; //heart symbol
@@ -88,69 +86,69 @@ int read_buttons()
 
 void displayHandler()
 {
-  if (lastDisplay < (millis() - LCD_INTERVAL)) {
-    lastDisplay = millis();
+  if (t_lastDisplay < (millis() - LCD_INTERVAL)) {
+    t_lastDisplay = millis();
     btnID = read_buttons();         // read the buttons
     switch (btnID) {               // depending on which button was pushed, we perform an action
         
-        case btnUP:
-          {
-            //show up time
-            lcd.clear();
-            lcd.setCursor(0, 0);
-            lcd.print("Up-Time:");
-            lcd.setCursor(0, 1);
-            lcd.print(String(millis()/1000) + "s ~ ");
-            lcd.print(String(float(millis())/3600000.0, 3));
-            lcd.print("h");
-            break;
-          }
-        case btnRIGHT:
-          {
-            //break;
-          }
-        case btnLEFT:
-          {
-            //break;
-          }
-        case btnDOWN:
-          {
-            //break;
-          }
-        case btnSELECT:
-          {
-            //break;
-          }
-        case btnNONE:
-          {
-            // standard state
-                lcd.setCursor(0, 0);
+      case btnUP:
+        {
+        //show up time
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("Up-Time:");
+        lcd.setCursor(0, 1);
+        lcd.print(String(millis()/1000) + "s ~ ");
+        lcd.print(String(float(millis())/3600000.0, 3));
+        lcd.print("h");
+        break;
+      }
+      case btnRIGHT:
+      {
+        //break;
+      }
+      case btnLEFT:
+      {
+        //break;
+      }
+      case btnDOWN:
+      {
+        //break;
+      }
+      case btnSELECT:
+      {
+        //break;
+      }
+      case btnNONE:
+      {
+        // standard state
+        lcd.clear();
+        lcd.setCursor(0, 0);
 
-                if (!blinkState) {
-                  lcd.write(byte(0)); //heart
-                  //lcd.print("X ");
-                } else {
-                  lcd.print("  "); //delete heart
-                }
+        if (!blinkState) {
+          lcd.write(byte(0)); //heart
+          //lcd.print("X ");
+        } else {
+          lcd.print("  "); //delete heart
+        }
+        lcd.setCursor(1, 0);
+        lcd.print(" " + String(temperature));
+        lcd.write(byte(1)); //degree symbol
+        lcd.print("C " + String(humidity) + "%");
 
-                lcd.setCursor(1, 0);
-                lcd.print(" " + String(temperature));
-                lcd.write(byte(1)); //degree symbol
-                lcd.print("C " + String(humidity) + "%");
-
-                // lcd.setCursor(row, line);
-                lcd.setCursor(0, 1);            // move to the begining of the second LCD line
-                lcd.print(String(btnID) + " " + String(pressure) + "hPa" + "                ");
-          }
-          break;
+        // lcd.setCursor(row, line);
+        lcd.setCursor(0, 1); // move to the begining of the second LCD line
+        lcd.print(String(btnID) + " " + String(pressure) + "hPa" + "                ");
+      }
+      break;
     }
   }
 }
 
 void serialWriteHandler()
 {
-  if (lastSerial < (millis() - SERIAL_INTERVAL)) {
-    lastSerial = millis();
+  if (t_lastSerial < (millis() - SERIAL_INTERVAL)) {
+    t_lastSerial = millis();
     Serial.println(String(millis()/1000) + "; " + String(temperature) + "; " + String(humidity) + "; " + String(pressure) + "; ");
   }
 }
@@ -167,9 +165,6 @@ void setup()
   // initialize serial communication at 115200 bits per second:
   Serial.begin(115200);
 
-  //load lcd
-  //lcd.init();
-  //lcd.backlight();
   lcd.clear();
   lcd.createChar(0, heart);
   lcd.createChar(1, degree);
@@ -206,8 +201,8 @@ void setup()
 void loop()
 {
   //blink LED and Display
-  if (lastBlink < (millis() - BLINK_INTERVAL)) {
-    lastBlink = millis();
+  if (t_lastBlink < (millis() - BLINK_INTERVAL)) {
+    t_lastBlink = millis();
     if (!blinkState) {
       digitalWrite(LED_BUILTIN, HIGH);
       blinkState = true;
@@ -219,8 +214,8 @@ void loop()
   }
 
   // read BME280
-  if (lastBme < (millis() - BME_INTERVAL)) {
-    lastBme = millis();
+  if (t_lastSensor < (millis() - BME_INTERVAL)) {
+    t_lastSensor = millis();
     // only in forced mode (otherwise only old data is read)
     bme.takeForcedMeasurement();
     //TODO: read sensor as one (not possible with current library)
