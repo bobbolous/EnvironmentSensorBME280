@@ -31,6 +31,8 @@
 #define LCD_INTERVAL 1000 //interval for refreshing LCD [ms] 
 #define BME_INTERVAL 2000 //interval for reading BME280 (may collide with sensor standby)
 #define BLINK_INTERVAL 1000 //interval for blinking (LED, LCD heart)
+//#define NO_VALUE_FLOAT 0.00f //dummy value for error data
+//#define SENSOR_ERROR_STRING "/SENSOR ERROR/" //string to print on error													 
 
 //for Sensor BME280
 #include <Wire.h> //I2C library
@@ -64,9 +66,9 @@ long t_lastBlink = 0;
 bool blinkState = false;
 
 //additional LCD characters
-uint8_t heart[8] = {0x0, 0xa, 0x1f, 0x1f, 0xe, 0x4, 0x0}; //heart symbol
-uint8_t degree[8] = {0x2, 0x5, 0x2, 0x0, 0x0, 0x0, 0x0}; //degree symbol
-uint8_t arrowup[8] = {0x4, 0xe, 0x15, 0x4, 0x4, 0x4, 0x4}; //arrow-up symbol
+uint8_t heart[8] = {0x00, 0x0A, 0x1F, 0x1F, 0x0E, 0x04, 0x00}; //heart symbol
+uint8_t degree[8] = {0x02, 0x05, 0x02, 0x00, 0x00, 0x00, 0x00}; //degree symbol
+uint8_t arrowup[8] = {0x04, 0x0E, 0x15, 0x04, 0x04, 0x04, 0x04}; //arrow-up symbol
 
 // read buttons
 int read_buttons()
